@@ -7,6 +7,7 @@ using SsPvo.Client.Messages.Exceptions;
 using SsPvo.Client.Messages.Serialization;
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using SsPvo.Client.Models;
 
@@ -45,7 +46,7 @@ namespace SsPvo.Client
 
             _csp = csp ?? throw new ArgumentNullException(nameof(csp));
             _logger = logger;
-             _restClient = new RestClient(apiUrl);
+            _restClient = new RestClient(apiUrl);
             _restClient.UseNewtonsoftJson(Utils.SerializerSettings);
 
             DefaultSsPvoMessageFactory = new SsPvoSsPvoMessageFactory(ogrn, kpp);
@@ -58,10 +59,12 @@ namespace SsPvo.Client
         #endregion
 
         #region methods
-        public virtual async Task<ResponseData> SendMessage(SsPvoMessage.Options options) =>
-            await SendMessage(DefaultSsPvoMessageFactory.Create(options));
+        public virtual async Task<ResponseData> SendMessage(SsPvoMessage.Options options,
+            CancellationToken token = default(CancellationToken)) =>
+            await SendMessage(DefaultSsPvoMessageFactory.Create(options), token);
 
-        public virtual async Task<ResponseData> SendMessage(SsPvoMessage msg)
+        public virtual async Task<ResponseData> SendMessage(SsPvoMessage msg, 
+            CancellationToken token = default(CancellationToken))
         {
             if (msg == null) throw new ArgumentNullException(nameof(msg));
 
@@ -81,9 +84,13 @@ namespace SsPvo.Client
                     Utils.SerializeForLog(msg.RequestData.Prepared),
                     $"{_restClient?.BaseUrl?.AbsoluteUri}/{request.Resource}");
 
-
-                response = await SendRestRequest(request);
+                response = await SendRestRequest(request, token);
                 msg.ResponseData = new ResponseData(msg, ResponseMetadata.From(response));
+            }
+            catch (OperationCanceledException e)
+            {
+                _logger?.LogWarning(e, $"Операция была прервана. '{msg.Guid}'. {e.Message}");
+                throw;
             }
             catch (SsPvoMessageRequestPreparationException e)
             {
@@ -103,15 +110,17 @@ namespace SsPvo.Client
             return msg.ResponseData;
         }
 
-        public virtual async Task<IRestResponse> SendRestRequest(string url, object messageBody)
+        public virtual async Task<IRestResponse> SendRestRequest(string url, object messageBody, 
+            CancellationToken token = default(CancellationToken))
         {
             var request = new RestRequest(url).AddJsonBody(messageBody);
-            return await SendRestRequest(request);
+            return await SendRestRequest(request, token);
         }
 
-        public virtual async Task<IRestResponse> SendRestRequest(IRestRequest request)
+        public virtual async Task<IRestResponse> SendRestRequest(IRestRequest request, 
+            CancellationToken token = default(CancellationToken))
         {
-            return await _restClient.ExecutePostAsync(request);
+            return await _restClient.ExecutePostAsync(request, token);
         }
 
         public ValueTuple<TExpected, ResponseData> TryExtractResponse<TExpected>(ResponseData rd)
