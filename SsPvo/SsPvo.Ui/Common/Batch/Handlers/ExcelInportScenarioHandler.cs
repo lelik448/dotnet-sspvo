@@ -27,30 +27,36 @@ namespace SsPvo.Ui.Common.Batch.Handlers
         {
             if (ApiClient == null) return item.SetResult(BatchAction.Status.Error, "Клиент API недоступен!");
 
-            var logger = options.GetValueOrDefault<Action<string>>($"{BatchAction.Options.CommonOptions.Log}");
+            var logger = options.GetValueOrDefault<ILogger<BatchAction>>($"{BatchAction.Options.CommonOptions.Log}");
 
-            logger?.Invoke($"Абитуриент {item.Description}..");
+            logger?.LogDebug($"Абитуриент {item.Description}..");
+
+            var pe = item.GetProcessedEntity<SsAppFromExcel>();
 
             try
             {
-                var pe = item.GetProcessedEntity<SsAppFromExcel>();
-
                 var msg = ApiClient.DefaultSsPvoMessageFactory.CreateActionMessage(
                     "get", "ServiceEntrant",
                     XDocument.Parse(
                         $"<PackageData><ServiceEntrant><IDEntrantChoice><SNILS>{pe.Snils}</SNILS></IDEntrantChoice></ServiceEntrant></PackageData>"));
 
-                logger?.Invoke($"Запрос ServiceEntrant..");
+                logger?.LogDebug($"Запрос ServiceEntrant..");
 
-                var response = await ApiClient.SendMessage(msg);
+                var response = await ApiClient.SendMessage(msg, token);
 
-                logger?.Invoke($"Ответ получен..");
+                logger?.LogDebug($"Ответ получен..");
 
                 var idJwtResponse = ApiClient.TryExtractResponse<IdJwtResponse>(response);
 
+                // TODO: запрос всех дополнительных сведений
 
                 return item.SetResult(BatchAction.Status.Completed,
-                        $"Студент {pe.FullName}[СНИЛС:{pe.Snils}] обработка успешно завершена!");
+                    $"Студент {pe.FullName}[СНИЛС:{pe.Snils}] обработка успешно завершена!");
+            }
+            catch (OperationCanceledException e)
+            {
+                return item.SetResult(BatchAction.Status.Canceled,
+                    $"Студент {pe.FullName}[СНИЛС:{pe.Snils}] обработка прервана! {e.Message}");
             }
             catch (Exception e)
             {

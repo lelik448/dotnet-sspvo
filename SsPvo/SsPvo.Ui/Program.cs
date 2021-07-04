@@ -1,5 +1,6 @@
 ﻿using Serilog;
-using SsPvo.Ui;
+using Serilog.Events;
+using SsPvo.Ui.Common.Logging;
 using System;
 using System.Windows.Forms;
 
@@ -21,6 +22,7 @@ namespace SsPvo.Ui
             var loggerFactory = new Microsoft.Extensions.Logging.LoggerFactory();
             var loggerConfig = new LoggerConfiguration()
                 .ReadFrom.AppSettings()
+                .WriteTo.Sink(LogUtils.CustomLogEventSink)
                 .CreateLogger();
 
             loggerFactory.AddSerilog(loggerConfig);

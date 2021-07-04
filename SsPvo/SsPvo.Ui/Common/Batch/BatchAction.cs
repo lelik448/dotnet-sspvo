@@ -7,11 +7,14 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace SsPvo.Ui.Common.Batch
 {
     public partial class BatchAction : INotifyPropertyChanged
     {
+        private readonly ILogger<BatchAction> _logger;
+
         #region fields
         private SortableBindingList<Item> _items;
         private Status _batchStatus;
@@ -21,8 +24,10 @@ namespace SsPvo.Ui.Common.Batch
         #region ctor
         public BatchAction(
             Scenario scenario,
+            ILogger<BatchAction> logger,
             IEnumerable<Item> items = null)
         {
+            _logger = logger;
             BatchScenario = scenario;
             BatchStatus = Status.NotStarted;
             Items = items != null 
@@ -33,7 +38,6 @@ namespace SsPvo.Ui.Common.Batch
         #endregion
 
         #region events
-        public event EventHandler<string> Log;
         public event EventHandler<Status> StatusChanged;
         #endregion
 
@@ -83,15 +87,15 @@ namespace SsPvo.Ui.Common.Batch
         {
             if (!Items.Any())
             {
-                OnLog("Нет элементов для обработки. Отмена");
+                _logger?.LogInformation("Нет элементов для обработки. Отмена");
                 BatchStatus = Status.Canceled;
                 return;
             }
 
             BatchStatus = Status.InProgress;
-            OnLog(BatchScenario.GetDescription());
+            _logger?.LogInformation(BatchScenario.GetDescription());
 
-            options.AddOrUpdate<Action<string>>(nameof(Options.CommonOptions.Log), OnLog);
+            options.AddOrUpdate<ILogger<BatchAction>>(nameof(Options.CommonOptions.Log), _logger);
 
             int i = 0;
             foreach (var item in Items)
@@ -102,7 +106,7 @@ namespace SsPvo.Ui.Common.Batch
                     return;
                 }
 
-                OnLog($"{i + 1}/{Items.Count}. {item.Description}");
+                _logger?.LogInformation($"{i + 1}/{Items.Count}. {item.Description}");
 
                 Status itemResult = Status.InProgress;
 
@@ -119,10 +123,10 @@ namespace SsPvo.Ui.Common.Batch
                 {
                     case Status.Completed:
                     case Status.Error:
-                        OnLog(item.ResultDescription);
+                        _logger?.LogInformation(item.ResultDescription);
                         break;
                     case Status.Canceled:
-                        OnLog(item.ResultDescription);
+                        _logger?.LogInformation(item.ResultDescription);
                         bool stopAllOnCancel =
                             options.GetValueOrDefault<bool>(nameof(Options.CommonOptions.StopAllOnCancel));
                         if (stopAllOnCancel)
@@ -144,12 +148,12 @@ namespace SsPvo.Ui.Common.Batch
 
             if (Items.Any(x => x.Status == Status.Error))
             {
-                OnLog("Возникли ошибки в процессе обработки.");
+                _logger?.LogWarning("Возникли ошибки в процессе обработки.");
                 BatchStatus = Status.Error;
             }
             else
             {
-                OnLog("Обработка завершена.");
+                _logger?.LogInformation("Обработка завершена.");
                 BatchStatus = Status.Completed;
             }
         }
@@ -173,13 +177,8 @@ namespace SsPvo.Ui.Common.Batch
 
         private void Canceled()
         {
-            OnLog("Операция отменена пользователем.");
+            _logger?.LogWarning("Операция отменена пользователем.");
             BatchStatus = Status.Canceled;
-        }
-
-        private void OnLog(string msg)
-        {
-            Log?.Invoke(this, msg);
         }
 
         private void Reset()

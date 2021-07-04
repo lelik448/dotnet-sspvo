@@ -21,6 +21,7 @@ using System.Xml.Linq;
 using SsPvo.Ui.Annotations;
 using SsPvo.Ui.Common.Batch;
 using SsPvo.Ui.Common.Batch.Handlers;
+using SsPvo.Ui.Common.Logging;
 using Formatting = Newtonsoft.Json.Formatting;
 using SsPvo.Ui.Extensions;
 
@@ -44,6 +45,8 @@ namespace SsPvo.Ui
             InitializeComponent();
             _csp = new Crypto();
             ExcelEntries = new List<SsAppFromExcel>();
+
+            LogUtils.CustomLogEventSink.LogEvent += CustomLogEventSink_LogEvent;
 
             this.Load += UiEpguTests_Load;
         }
@@ -101,6 +104,21 @@ namespace SsPvo.Ui
             //Settings.Default.Upgrade();
             //Settings.Default.Reload();
         }
+
+        private void CustomLogEventSink_LogEvent(object sender, Serilog.Events.LogEvent e)
+        {
+            try
+            {
+                TbExcelJobsLog.AppendText($@"{DateTime.Now:G}: {e.RenderMessage()}");
+                TbExcelJobsLog.AppendText($"{Environment.NewLine}");
+                Application.DoEvents();
+            }
+            catch (Exception exception)
+            {
+                Console.WriteLine(exception);
+            }
+        }
+
         public void IndicateState(bool busy, string message = "") =>
             this.IndicateState(busy, message, TssLabel, TssStatusIcon);
         #endregion
@@ -110,15 +128,13 @@ namespace SsPvo.Ui
         {
             ReInitClient();
 
-            _importBatch = new BatchAction(BatchAction.Scenario.ExcelImport);
+            _importBatch =
+                new BatchAction(BatchAction.Scenario.ExcelImport, _loggerFactory.CreateLogger<BatchAction>());
             _jobHandler = new ExcelInportScenarioHandler(_ssPvoClient);
             _importBatch.Handlers.Add(_jobHandler);
             ImportItems = new SortableBindingList<BatchAction.Item>();
 
-            _importBatch.Log += ImportBatchLog;
-            _importBatch.StatusChanged += ImportBatchStatusChanged;
-
-            TsbRestart.Click += async (s, e) => await RunImportAsync();
+            TsbRestart.Click += async (s, e) => await RunJobsAsync();
             TsbCancel.Click += (s, e) => _cancellationTokenSource?.Cancel();
             TsbRemoveSelectedItems.Click += (s, e) =>
                 RemoveImportItems(DgvImportFiles.SelectedRowsDataBoundItems<BatchAction.Item>());
@@ -207,18 +223,6 @@ namespace SsPvo.Ui
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
-            }
-        }
-        private void ImportBatchLog(object sender, string e)
-        {
-            try
-            {
-                TbExcelJobsLog.AppendText($@"{DateTime.Now:G}: {e}{Environment.NewLine}");
-                Application.DoEvents();
-            }
-            catch (Exception exception)
-            {
-                Console.WriteLine(exception);
             }
         }
         private void ImportBatchStatusChanged(object sender, BatchAction.Status e)
@@ -604,12 +608,10 @@ namespace SsPvo.Ui
             ImportItems.Add(item);
         }
 
-
-        public async Task RunImportAsync()
+        public async Task RunJobsAsync()
         {
             if (_importBatch.BatchStatus == BatchAction.Status.InProgress) return;
 
-            _importBatch.Log += ImportBatchLog;
             _importBatch.StatusChanged += ImportBatchStatusChanged;
 
             _cancellationTokenSource = new CancellationTokenSource();
@@ -624,7 +626,6 @@ namespace SsPvo.Ui
 
             _importBatch.Items.Clear();
 
-            _importBatch.Log -= ImportBatchLog;
             _importBatch.StatusChanged -= ImportBatchStatusChanged;
         }
         #endregion

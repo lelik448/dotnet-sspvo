@@ -137,6 +137,8 @@
     <Compile Include="Common\Controls\BindableToolstripButton.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="Common\Logging\CustomLogEventSink.cs" />
+    <Compile Include="Common\Logging\LogUtils.cs" />
     <Compile Include="Common\SsAppFromExcel.cs" />
     <Compile Include="Common\Batch\BatchAction.cs" />
     <Compile Include="Common\Batch\BatchAction.Item.cs" />
@@ -227,5 +229,6 @@
   <ItemGroup>
     <None Include="Resources\refresh_update.png" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
