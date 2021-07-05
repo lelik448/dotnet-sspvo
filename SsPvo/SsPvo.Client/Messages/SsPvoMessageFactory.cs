@@ -5,12 +5,12 @@ using System.Xml.Linq;
 
 namespace SsPvo.Client.Messages
 {
-    public class SsPvoSsPvoMessageFactory : ISsPvoMessageFactory
+    public class SsPvoMessageFactory : ISsPvoMessageFactory
     {
         private readonly string _ogrn;
         private readonly string _kpp;
 
-        public SsPvoSsPvoMessageFactory(string ogrn, string kpp)
+        public SsPvoMessageFactory(string ogrn, string kpp)
         {
             _ogrn = ogrn;
             _kpp = kpp;
