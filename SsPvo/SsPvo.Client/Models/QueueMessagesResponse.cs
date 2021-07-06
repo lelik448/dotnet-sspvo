@@ -5,9 +5,10 @@ namespace SsPvo.Client.Models
 {
     public class QueueMessagesResponse : IJsonResponse
     {
+        [JsonProperty("messages")]
         public int Messages { get; set; }
 
-        [JsonProperty(Required = Required.Default)]
+        [JsonProperty("idJwts", Required = Required.Default)]
         public int[] IdJwts { get; set; }
     }
 }

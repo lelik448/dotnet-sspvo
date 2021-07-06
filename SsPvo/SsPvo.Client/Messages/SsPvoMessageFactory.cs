@@ -41,6 +41,7 @@ namespace SsPvo.Client.Messages
                     }
                     break;
                 case SsPvoMessageType.Confirm:
+                    msg.RequestData.JHeader.Add("action", "messageConfirm");
                     msg.RequestData.JHeader.Add("idJwt", options.IdJwt);
                     break;
                 default:

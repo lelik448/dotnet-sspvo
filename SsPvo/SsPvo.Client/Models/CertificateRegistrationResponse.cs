@@ -1,4 +1,5 @@
-﻿using SsPvo.Client.Messages.Base;
+﻿using Newtonsoft.Json;
+using SsPvo.Client.Messages.Base;
 
 namespace SsPvo.Client.Models
 {
@@ -7,6 +8,7 @@ namespace SsPvo.Client.Models
         /// <summary>
         /// Первая буква кириллическая (баг в API СС)
         /// </summary>
+        [JsonProperty("сertificate")]
         public bool Сertificate { get; set; }
     }
 }

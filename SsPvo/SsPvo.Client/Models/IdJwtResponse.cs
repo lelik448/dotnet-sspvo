@@ -1,9 +1,11 @@
-﻿using SsPvo.Client.Messages.Base;
+﻿using Newtonsoft.Json;
+using SsPvo.Client.Messages.Base;
 
 namespace SsPvo.Client.Models
 {
     public class IdJwtResponse : IJsonResponse
     {
-        public int IdJwt { get; set; }
+        [JsonProperty("idJwt")]
+        public string IdJwt { get; set; }
     }
 }
