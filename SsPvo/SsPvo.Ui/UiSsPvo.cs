@@ -109,7 +109,7 @@ namespace SsPvo.Ui
         {
             try
             {
-                TbExcelJobsLog.AppendText($@"{DateTime.Now:G}: {e.RenderMessage()}");
+                TbExcelJobsLog.AppendText($@"{DateTime.Now:G} [{e.Level}]: {e.RenderMessage()}");
                 TbExcelJobsLog.AppendText($"{Environment.NewLine}");
                 Application.DoEvents();
             }
