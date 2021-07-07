@@ -1,4 +1,5 @@
-﻿using System.Xml.Linq;
+﻿using System;
+using System.Xml.Linq;
 using Newtonsoft.Json.Linq;
 using SsPvo.Client.Extensions;
 
@@ -20,19 +21,15 @@ namespace SsPvo.Client.Messages.Serialization
         public string Payload { get; set; }
         public string Signature { get; set; }
 
-        public RequestData Decode()
+        public ValueTuple<JObject, XDocument, string> Decode()
         {
-            var msgData = new RequestData();
-            try
+            var res = new
             {
-                if (!string.IsNullOrWhiteSpace(Header)) msgData.JHeader = JObject.Parse(Header.FromBase64String());
-                if (!string.IsNullOrWhiteSpace(Payload)) msgData.XPayload = XDocument.Parse(Payload.FromBase64String());
-            }
-            finally
-            {
-            }
-
-            return msgData;
+                JHeader = !string.IsNullOrWhiteSpace(Header) ? JObject.Parse(Header.FromBase64String()) : null,
+                XPayload = !string.IsNullOrWhiteSpace(Payload) ? XDocument.Parse(Payload.FromBase64String()) : null,
+                Signature
+            };
+            return (res.JHeader, res.XPayload, res.Signature);
         }
     }
 }

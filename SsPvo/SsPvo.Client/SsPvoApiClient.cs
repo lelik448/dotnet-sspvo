@@ -49,13 +49,13 @@ namespace SsPvo.Client
             _restClient = new RestClient(apiUrl);
             _restClient.UseNewtonsoftJson(Utils.SerializerSettings);
 
-            DefaultSsPvoMessageFactory = new SsPvoSsPvoMessageFactory(ogrn, kpp);
+            DefaultSsPvoMessageFactory = new SsPvoMessageFactory(ogrn, kpp);
 
             logger?.LogDebug($"{nameof(SsPvoApiClient)} initialized");
         }
 
         #region props
-        public SsPvoSsPvoMessageFactory DefaultSsPvoMessageFactory { get; }
+        public SsPvoMessageFactory DefaultSsPvoMessageFactory { get; }
         #endregion
 
         #region methods

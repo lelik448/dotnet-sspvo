@@ -93,18 +93,25 @@ namespace SsPvo.Client.Messages.Serialization
             return JsonConvert.SerializeObject(obj, overrideSettings ?? SerializerSettings);
         }
 
-        public static bool ValidateJsonSchemaAs<T>(string source)
+        public static bool ValidateJsonSchemaAs<T, TLogger>(string source, ILogger<TLogger> logger = null)
         {
-            if (!(source?.IsValidJson() ?? false)) return false;
+            if (!(source?.IsValidJson() ?? false))
+            {
+                logger?.LogWarning("Валидация схемы JSON: не является валидным JSON!");
+                return false;
+            }
             if (!JSchemas.ContainsKey(typeof(T)))
             {
+                logger?.LogDebug("Валидация схемы JSON: Новая схема! Добавляем в справочник.");
                 var generator = new JSchemaGenerator();
                 ((Dictionary<Type, JSchema>)JSchemas).Add(typeof(T), generator.Generate(typeof(T)));
             }
 
-            IList<string> messages;
             var jo = JObject.Parse(source);
-            bool isValid = jo.IsValid(JSchemas[typeof(T)], out messages);
+            bool isValid = jo.IsValid(JSchemas[typeof(T)], out IList<string> messages);
+
+            if (!isValid) logger?.LogWarning($"Валидация схемы JSON: Ошибки валидации: {string.Join(",", messages)}");
+
             return isValid;
         }
 
@@ -142,6 +149,7 @@ namespace SsPvo.Client.Messages.Serialization
                 // The Uri that actually responded (could be different from the requestUri if a redirection occurred)
                 responseUri = response.ResponseUri,
                 errorMessage = response.ErrorMessage,
+                rawBytesLength = response.RawBytes?.Length
             };
 
             logger.LogTrace("Request '{@MessageGuid}' completed. RequestData: {@RequestToLog}, Response: {@ResponseToLog}",

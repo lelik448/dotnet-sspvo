@@ -3,6 +3,7 @@ using SsPvo.Client.Extensions;
 using SsPvo.Client.Messages.Serialization;
 using SsPvo.Client.Models;
 using System;
+using System.Net.Mime;
 using System.Xml.Linq;
 
 namespace SsPvo.Client.Messages
@@ -30,26 +31,26 @@ namespace SsPvo.Client.Messages
         {
             try
             {
-                if (!ExtractData<TExpected>(out var value))
+                if (!ExtractData<TExpected, TLogger>(out var value, logger))
                 {
                     if (DataErrors != null)
                     {
-                        logger?.LogWarning("API Response: data errors: {@DataErrors}",
+                        logger?.LogWarning("Извлечение данных ответа: data errors: {@DataErrors}",
                             Utils.SerializeForLog(DataErrors));
                         return (value, this);
                     }
 
-                    logger?.LogError("API Response: unknown data error!", Utils.SerializeForLog(DataErrors));
+                    logger?.LogError("Извлечение данных ответа: unknown data error!", Utils.SerializeForLog(DataErrors));
                     return (value, this);
                 }
 
-                logger?.LogInformation("API Response value: {@Value}", Utils.SerializeForLog(value));
+                logger?.LogDebug("Извлечение данных ответа: {@Value}", Utils.SerializeForLog(value));
 
                 return (value, this);
             }
             catch (Exception e)
             {
-                logger?.LogError(e, "API Response Extraction thrown exception: {@ExceptionMessage}!", e.Message);
+                logger?.LogError(e, "Извлечение данных ответа thrown exception: {@ExceptionMessage}!", e.Message);
                 throw;
             }
         }
@@ -62,25 +63,36 @@ namespace SsPvo.Client.Messages
             _dataErrors = null;
             string data = Metadata?.Content;
 
+            logger?.LogDebug($"Извлечение данных ответа: ожидаемый тип {typeof(TExpected)}");
+
             try
             {
                 if (data?.IsValidXml() ?? false)
                 {
+                    logger?.LogDebug("Извлечение данных ответа: является валидным XML");
                     value = XDocument.Parse(data) as TExpected;
                     return typeof(TExpected) == typeof(XDocument);
                 }
 
                 if (data?.IsValidJson() ?? false)
                 {
-                    bool isErrorJson = Utils.ValidateJsonSchemaAs<ErrorResponse>(data);
+                    logger?.LogDebug("Извлечение данных ответа: является валидным JSON");
+
+                    bool isErrorJson = Utils.ValidateJsonSchemaAs<ErrorResponse, TLogger>(data, logger);
                     DataErrors = isErrorJson ? Utils.DeserializeTo<ErrorResponse>(data) : null;
 
-                    bool asExpected = Utils.ValidateJsonSchemaAs<TExpected>(data);
+                    logger?.LogDebug("Извлечение данных ответа: валидация согласно JSON-схеме");
+
+                    bool asExpected = Utils.ValidateJsonSchemaAs<TExpected, TLogger>(data, logger);
                     if (asExpected)
                     {
+                        logger?.LogDebug($"Согласно ожиданиям! ({typeof(TExpected)})");
+
                         value = Utils.DeserializeTo<TExpected>(data) as TExpected;
                         return true;
                     }
+
+                    logger?.LogWarning($"Неожиданный тип ответа!");
 
                     value = null;
                     return false;
