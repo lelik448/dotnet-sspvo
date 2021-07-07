@@ -41,7 +41,6 @@ namespace ConsoleApp2
 
             // !!! ТЕСТ убрать !!!
             snils = "16267450274"; // Морозова Юлия (есть достижение) - участие в олимпиадах
-            string[] appEpguIds = new[] { "1281501883" };
             // !!! ТЕСТ убрать !!!
 
 
@@ -103,7 +102,7 @@ namespace ConsoleApp2
                         else
                         {
                             Console.WriteLine($"{nameof(snils)}: Указан СНИЛС:{snils}, обработка..");
-                            await apiClient.saveXmlBySnils(snils.Trim(), savepath, appEpguIds);
+                            await apiClient.saveXmlBySnils(snils.Trim(), savepath);
                         }
                     }
                 }
