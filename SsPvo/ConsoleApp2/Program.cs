@@ -39,10 +39,6 @@ namespace ConsoleApp2
 
             var apiClient = new SSClient(ogrn, kpp, host, new Crypto { X509SubjectFragment = certsubj });
 
-            // !!! ТЕСТ убрать !!!
-            snils = "16267450274"; // Морозова Юлия (есть достижение) - участие в олимпиадах
-            // !!! ТЕСТ убрать !!!
-
 
             Console.WriteLine("==================================");
             Console.WriteLine($"Текущие настройки:");
